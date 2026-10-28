@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Orçamentos em PDF</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'sans-serif'] },
+          colors: { brand: { 50: '#f1f5f9', 100: '#e2e8f0', 600: '#1e3a5f', 700: '#172f4d', 800: '#0f2339', 900: '#0b1a2b' } }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #f1f5f9; }
+    .field {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.875rem;
+      color: #0f172a;
+      background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 3px rgba(30, 58, 95, .15); }
+    .label { display: block; font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: .03em; }
+
+    @page { size: A4; margin: 14mm; }
+
+    @media print {
+      html, body { background: #fff !important; }
+      .no-print { display: none !important; }
+      #layout { display: block !important; max-width: none !important; padding: 0 !important; margin: 0 !important; }
+      #previewWrap { width: 100% !important; margin: 0 !important; padding: 0 !important; position: static !important; }
+      #folha {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+      }
+      #folha tr { page-break-inside: avoid; }
+      #folha .avoid-break { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="font-sans text-slate-800 antialiased">
+
+  <!-- Cabeçalho da página (some na impressão) -->
+  <header class="no-print bg-brand-800 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 4h7l5 5v11a1 1 0 01-1 1H7a1 1 0 01-1-1V5a1 1 0 011-1z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold leading-tight">Gerador de Orçamentos</h1>
+          <p class="text-xs sm:text-sm text-slate-300">Crie orçamentos profissionais em PDF, direto no navegador</p>
+        </div>
+      </div>
+      <span class="hidden sm:inline-flex items-center gap-2 text-xs bg-white/10 rounded-full px-3 py-1.5 text-slate-200">
+        <span class="h-2 w-2 rounded-full bg-emerald-400"></span> Funciona 100% offline, seus dados não saem do seu computador
+      </span>
+    </div>
+  </header>
+
+  <main id="layout" class="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- COLUNA DO FORMULÁRIO -->
+    <section class="no-print lg:col-span-6 space-y-5">
+
+      <!-- Emissor -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center gap-2">
+          <span class="h-6 w-6 rounded-md bg-brand-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+          <h2 class="font-semibold text-slate-800">Dados do Emissor</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="label" for="emNome">Nome / Empresa</label>
+            <input id="emNome" class="field" type="text" placeholder="Ex.: Studio Silva Serviços Digitais" />
+          </div>
+          <div>
+            <label class="label" for="emDoc">CNPJ / CPF</label>
+            <input id="emDoc" class="field" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" />
+          </div>
+          <div>
+            <label class="label" for="emTel">Telefone</label>
+            <input id="emTel" class="field" type="text" inputmode="tel" placeholder="(11) 90000-0000" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label" for="emMail">E-mail</label>
+            <input id="emMail" class="field" type="email" placeholder="contato@seudominio.com.br" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Cliente -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center gap-2">
+          <span class="h-6 w-6 rounded-md bg-brand-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+          <h2 class="font-semibold text-slate-800">Dados do Cliente</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="label" for="clNome">Nome / Empresa</label>
+            <input id="clNome" class="field" type="text" placeholder="Ex.: Maria Oliveira" />
+          </div>
+          <div>
+            <label class="label" for="clDoc">CPF / CNPJ</label>
+            <input id="clDoc" class="field" type="text" inputmode="numeric" placeholder="000.000.000-00" />
+          </div>
+          <div>
+            <label class="label" for="clTel">Telefone</label>
+            <input id="clTel" class="field" type="text" inputmode="tel" placeholder="(11) 90000-0000" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Itens -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="h-6 w-6 rounded-md bg-brand-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+            <h2 class="font-semibold text-slate-800">Itens do Orçamento</h2>
+          </div>
+          <button id="btnAdd" type="button"
+            class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg px-3 py-1.5 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+            Adicionar item
+          </button>
+        </div>
+        <div class="p-5">
+          <div class="hidden sm:grid grid-cols-12 gap-2 mb-2 px-1">
+            <span class="label col-span-5 mb-0">Descrição</span>
+            <span class="label col-span-2 mb-0">Qtd.</span>
+            <span class="label col-span-2 mb-0">Valor unit.</span>
+            <span class="label col-span-2 mb-0 text-right">Total</span>
+            <span class="col-span-1"></span>
+          </div>
+          <div id="itensContainer" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- Observações -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+        <div class="px-5 py-3 border-b border-slate-200 flex items-center gap-2">
+          <span class="h-6 w-6 rounded-md bg-brand-600 text-white text-xs font-bold flex items-center justify-center">4</span>
+          <h2 class="font-semibold text-slate-800">Observações e Condições</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-3">
+            <label class="label" for="obs">Prazo de entrega, forma de pagamento, etc.</label>
+            <textarea id="obs" rows="4" class="field" placeholder="Ex.: Entrega em até 10 dias úteis. Pagamento: 50% na aprovação e 50% na entrega via PIX."></textarea>
+          </div>
+          <div>
+            <label class="label" for="validade">Validade (dias)</label>
+            <input id="validade" class="field" type="number" min="1" step="1" value="15" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Total + botão -->
+      <div class="bg-brand-800 text-white rounded-xl shadow-lg p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-slate-300">Valor Total do Orçamento</p>
+          <p id="totalTela" class="text-3xl font-extrabold tracking-tight">R$ 0,00</p>
+        </div>
+        <button id="btnPdf" type="button"
+          class="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white font-bold rounded-lg px-6 py-3.5 shadow-md transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v16H4z"/></svg>
+          Gerar PDF para o Cliente
+        </button>
+      </div>
+      <p class="text-xs text-slate-500 px-1">
+        Dica: na janela que abrir, escolha <strong>"Salvar como PDF"</strong> como destino e desative "Cabeçalhos e rodapés" para um resultado mais limpo.
+      </p>
+    </section>
+
+    <!-- COLUNA DA PRÉ-VISUALIZAÇÃO / FOLHA DE IMPRESSÃO -->
+    <section id="previewWrap" class="lg:col-span-6">
+      <div class="no-print flex items-center justify-between mb-3 px-1">
+        <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Pré-visualização</h2>
+        <span class="text-xs text-slate-500">Atualiza em tempo real</span>
+      </div>
+
+      <article id="folha" class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mx-auto" style="max-width: 800px;">
+        <!-- Faixa timbrada -->
+        <div class="bg-brand-800 text-white px-8 py-7 flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.25em] text-slate-300">Orçamento</p>
+            <h3 id="pvEmNome" class="text-2xl font-extrabold leading-tight mt-1 break-words">Nome do Emissor</h3>
+            <p id="pvEmDoc" class="text-sm text-slate-300 mt-1"></p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-xs uppercase tracking-wider text-slate-300">Nº</p>
+            <p id="pvNumero" class="text-lg font-bold">ORC-0000</p>
+            <p class="text-xs text-slate-300 mt-2">Emitido em</p>
+            <p id="pvData" class="text-sm font-semibold"></p>
+          </div>
+        </div>
+        <div class="h-1.5 bg-emerald-500"></div>
+
+        <div class="px-8 py-7">
+          <!-- Contatos -->
+          <div class="grid grid-cols-2 gap-6 avoid-break">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Emissor</p>
+              <div class="text-sm space-y-0.5">
+                <p id="pvEmNome2" class="font-semibold text-slate-900 break-words"></p>
+                <p id="pvEmDoc2" class="text-slate-600"></p>
+                <p id="pvEmTel" class="text-slate-600"></p>
+                <p id="pvEmMail" class="text-slate-600 break-all"></p>
+              </div>
+            </div>
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Cliente</p>
+              <div class="text-sm space-y-0.5">
+                <p id="pvClNome" class="font-semibold text-slate-900 break-words"></p>
+                <p id="pvClDoc" class="text-slate-600"></p>
+                <p id="pvClTel" class="text-slate-600"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabela de itens -->
+          <div class="mt-7">
+            <table class="w-full text-sm border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 text-[11px] uppercase tracking-wider">
+                  <th class="text-left py-2.5 px-3 w-10">#</th>
+                  <th class="text-left py-2.5 px-3">Descrição</th>
+                  <th class="text-right py-2.5 px-3 w-16">Qtd.</th>
+                  <th class="text-right py-2.5 px-3 w-28">Valor unit.</th>
+                  <th class="text-right py-2.5 px-3 w-32">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="pvItens"></tbody>
+            </table>
+          </div>
+
+          <!-- Total -->
+          <div class="mt-5 flex justify-end avoid-break">
+            <div class="w-full sm:w-72 bg-brand-800 text-white rounded-lg px-5 py-4 flex items-center justify-between">
+              <span class="text-xs uppercase tracking-wider text-slate-300">Total</span>
+              <span id="pvTotal" class="text-2xl font-extrabold">R$ 0,00</span>
+            </div>
+          </div>
+
+          <!-- Observações -->
+          <div id="pvObsBloco" class="mt-8 avoid-break">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Observações e condições</p>
+            <div id="pvObs" class="text-sm text-slate-700 whitespace-pre-line border-l-4 border-slate-300 pl-4 py-1 break-words"></div>
+          </div>
+
+          <p id="pvValidade" class="mt-6 text-xs text-slate-500"></p>
+
+          <!-- Assinaturas -->
+          <div class="mt-14 grid grid-cols-2 gap-10 avoid-break">
+            <div class="text-center">
+              <div class="border-t border-slate-400 pt-1.5 text-xs text-slate-600">Emissor</div>
+            </div>
+            <div class="text-center">
+              <div class="border-t border-slate-400 pt-1.5 text-xs text-slate-600">De acordo (Cliente)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-100 px-8 py-3 text-center text-[11px] text-slate-500">
+          Documento gerado eletronicamente. Este orçamento não possui valor fiscal.
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ---------- Utilidades ----------
+      var brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+      var numFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 3 });
+
+      function $(id) { return document.getElementById(id); }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function onlyDigits(v) { return String(v).replace(/\D/g, ''); }
+
+      function maskDoc(v) {
+        var d = onlyDigits(v).slice(0, 14);
+        if (d.length <= 11) {
+          return d
+            .replace(/^(\d{3})(\d)/, '$1.$2')
+            .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+            .replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
+        return d
+          .replace(/^(\d{2})(\d)/, '$1.$2')
+          .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+          .replace(/\.(\d{3})(\d)/, '.$1/$2')
+          .replace(/(\d{4})(\d)/, '$1-$2');
+      }
+
+      function maskPhone(v) {
+        var d = onlyDigits(v).slice(0, 11);
+        if (d.length === 0) return '';
+        if (d.length <= 2) return '(' + d;
+        if (d.length <= 6) return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+        if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+        return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+      }
+
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      // ---------- Número e datas ----------
+      var hoje = new Date();
+      var numeroOrcamento = 'ORC-' + hoje.getFullYear() + pad(hoje.getMonth() + 1) + pad(hoje.getDate()) +
+        '-' + String(Math.floor(Math.random() * 900) + 100);
+      $('pvNumero').textContent = numeroOrcamento;
+      $('pvData').textContent = hoje.toLocaleDateString('pt-BR');
+
+      // ---------- Itens dinâmicos ----------
+      var container = $('itensContainer');
+      var itemSeq = 0;
+
+      function criarLinha(valores) {
+        itemSeq++;
+        var id = 'item-' + itemSeq;
+        var row = document.createElement('div');
+        row.className = 'item-row grid grid-cols-12 gap-2 items-end bg-slate-50 sm:bg-transparent rounded-lg p-3 sm:p-0 border border-slate-200 sm:border-0';
+        row.setAttribute('data-id', id);
+        row.innerHTML =
+          '<div class="col-span-12 sm:col-span-5">' +
+            '<label class="label sm:hidden">Descrição</label>' +
+            '<input type="text" class="field it-desc" placeholder="Descrição do serviço ou produto" />' +
+          '</div>' +
+          '<div class="col-span-4 sm:col-span-2">' +
+            '<label class="label sm:hidden">Qtd.</label>' +
+            '<input type="number" class="field it-qtd" min="0" step="any" value="1" />' +
+          '</div>' +
+          '<div class="col-span-8 sm:col-span-2">' +
+            '<label class="label sm:hidden">Valor unit. (R$)</label>' +
+            '<input type="number" class="field it-val" min="0" step="0.01" placeholder="0,00" />' +
+          '</div>' +
+          '<div class="col-span-8 sm:col-span-2 sm:text-right">' +
+            '<label class="label sm:hidden">Total</label>' +
+            '<div class="it-total text-sm font-semibold text-slate-800 py-2.5">R$ 0,00</div>' +
+          '</div>' +
+          '<div class="col-span-4 sm:col-span-1 flex sm:justify-end">' +
+            '<button type="button" class="it-remove inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 rounded-lg px-2.5 py-2 transition" title="Remover item">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V4h6v3m-8 0l1 13h8l1-13"/></svg>' +
+              '<span class="sm:hidden">Remover</span>' +
+            '</button>' +
+          '</div>';
+
+        if (valores) {
+          row.querySelector('.it-desc').value = valores.desc || '';
+          row.querySelector('.it-qtd').value = valores.qtd != null ? valores.qtd : 1;
+          row.querySelector('.it-val').value = valores.val != null ? valores.val : '';
+        }
+        container.appendChild(row);
+        return row;
+      }
+
+      function lerItens() {
+        var rows = container.querySelectorAll('.item-row');
+        var itens = [];
+        rows.forEach(function (row) {
+          var desc = row.querySelector('.it-desc').value.trim();
+          var qtd = parseFloat(row.querySelector('.it-qtd').value);
+          var val = parseFloat(row.querySelector('.it-val').value);
+          if (isNaN(qtd) || qtd < 0) qtd = 0;
+          if (isNaN(val) || val < 0) val = 0;
+          var total = Math.round(qtd * val * 100) / 100;
+          row.querySelector('.it-total').textContent = brl.format(total);
+          itens.push({ desc: desc, qtd: qtd, val: val, total: total });
+        });
+        return itens;
+      }
+
+      // ---------- Atualização geral ----------
+      function setText(id, text) { $(id).textContent = text || ''; }
+
+      function atualizar() {
+        var itens = lerItens();
+        var totalGeral = itens.reduce(function (acc, it) { return acc + it.total; }, 0);
+        totalGeral = Math.round(totalGeral * 100) / 100;
+
+        $('totalTela').textContent = brl.format(totalGeral);
+        $('pvTotal').textContent = brl.format(totalGeral);
+
+        // Emissor
+        var emNome = $('emNome').value.trim();
+        setText('pvEmNome', emNome || 'Nome do Emissor');
+        setText('pvEmNome2', emNome);
+        var emDoc = $('emDoc').value.trim();
+        setText('pvEmDoc', emDoc ? 'CNPJ/CPF: ' + emDoc : '');
+        setText('pvEmDoc2', emDoc ? 'CNPJ/CPF: ' + emDoc : '');
+        var emTel = $('emTel').value.trim();
+        setText('pvEmTel', emTel ? 'Tel.: ' + emTel : '');
+        var emMail = $('emMail').value.trim();
+        setText('pvEmMail', emMail);
+
+        // Cliente
+        var clNome = $('clNome').value.trim();
+        setText('pvClNome', clNome || 'Cliente não informado');
+        var clDoc = $('clDoc').value.trim();
+        setText('pvClDoc', clDoc ? 'CPF/CNPJ: ' + clDoc : '');
+        var clTel = $('clTel').value.trim();
+        setText('pvClTel', clTel ? 'Tel.: ' + clTel : '');
+
+        // Tabela de itens (somente linhas preenchidas)
+        var corpo = $('pvItens');
+        var html = '';
+        var n = 0;
+        itens.forEach(function (it) {
+          if (!it.desc && it.val === 0) return;
+          n++;
+          html +=
+            '<tr class="border-b border-slate-200">' +
+              '<td class="py-3 px-3 text-slate-500 align-top">' + n + '</td>' +
+              '<td class="py-3 px-3 text-slate-900 align-top break-words">' + escapeHtml(it.desc || 'Item sem descrição') + '</td>' +
+              '<td class="py-3 px-3 text-right text-slate-700 align-top">' + numFmt.format(it.qtd) + '</td>' +
+              '<td class="py-3 px-3 text-right text-slate-700 align-top whitespace-nowrap">' + brl.format(it.val) + '</td>' +
+              '<td class="py-3 px-3 text-right font-semibold text-slate-900 align-top whitespace-nowrap">' + brl.format(it.total) + '</td>' +
+            '</tr>';
+        });
+        if (n === 0) {
+          html = '<tr><td colspan="5" class="py-8 text-center text-slate-400 text-sm">Nenhum item adicionado ainda.</td></tr>';
+        }
+        corpo.innerHTML = html;
+
+        // Observações
+        var obs = $('obs').value.trim();
+        $('pvObsBloco').style.display = obs ? '' : 'none';
+        $('pvObs').textContent = obs;
+
+        // Validade
+        var dias = parseInt($('validade').value, 10);
+        if (!isNaN(dias) && dias > 0) {
+          var limite = new Date(hoje.getTime());
+          limite.setDate(limite.getDate() + dias);
+          $('pvValidade').textContent = 'Proposta válida por ' + dias + (dias === 1 ? ' dia' : ' dias') +
+            ', até ' + limite.toLocaleDateString('pt-BR') + '.';
+        } else {
+          $('pvValidade').textContent = '';
+        }
+      }
+
+      // ---------- Eventos ----------
+      container.addEventListener('input', atualizar);
+
+      container.addEventListener('click', function (e) {
+        var btn = e.target.closest('.it-remove');
+        if (!btn) return;
+        var row = btn.closest('.item-row');
+        if (row) row.remove();
+        if (container.querySelectorAll('.item-row').length === 0) criarLinha();
+        atualizar();
+      });
+
+      $('btnAdd').addEventListener('click', function () {
+        var row = criarLinha();
+        row.querySelector('.it-desc').focus();
+        atualizar();
+      });
+
+      ['emNome', 'emMail', 'clNome', 'obs', 'validade'].forEach(function (id) {
+        $(id).addEventListener('input', atualizar);
+      });
+
+      ['emDoc', 'clDoc'].forEach(function (id) {
+        $(id).addEventListener('input', function (e) {
+          e.target.value = maskDoc(e.target.value);
+          atualizar();
+        });
+      });
+
+      ['emTel', 'clTel'].forEach(function (id) {
+        $(id).addEventListener('input', function (e) {
+          e.target.value = maskPhone(e.target.value);
+          atualizar();
+        });
+      });
+
+      $('btnPdf').addEventListener('click', function () {
+        var itens = lerItens();
+        var temItem = itens.some(function (it) { return it.desc || it.val > 0; });
+        if (!temItem) {
+          alert('Adicione pelo menos um item ao orçamento antes de gerar o PDF.');
+          return;
+        }
+        atualizar();
+
+        // O navegador usa o título da página como nome sugerido do arquivo PDF
+        var tituloOriginal = document.title;
+        var cliente = $('clNome').value.trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-');
+        document.title = 'Orcamento-' + numeroOrcamento + (cliente ? '-' + cliente : '');
+
+        function restaurar() {
+          document.title = tituloOriginal;
+          window.removeEventListener('afterprint', restaurar);
+        }
+        window.addEventListener('afterprint', restaurar);
+
+        window.print();
+      });
+
+      // ---------- Inicialização ----------
+      criarLinha();
+      atualizar();
+    })();
+  </script>
+</body>
+</html>
